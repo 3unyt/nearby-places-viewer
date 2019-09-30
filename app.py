@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 """
-    nearby.py
+    app.py
 
     MediaWiki Action API Code Samples
 
@@ -16,11 +16,12 @@ from flask import Flask, render_template, request, jsonify
 import requests
 from haversine import haversine
 
-app = Flask(__name__)
+APP = Flask(__name__)
 SESSION = requests.Session()
 API_ENDPOINT = 'https://en.wikipedia.org/w/api.php'
 
-@app.route('/', methods=['GET', 'POST'])    # extend the route to handle POST requests
+
+@APP.route('/', methods=['GET', 'POST'])    # extend the route to handle POST requests
 def index():
     """ Displays the index page accessible at '/'
     """
@@ -33,12 +34,15 @@ def index():
 
         # pass the location data to fetch_places_nearby() for further processing
         results = fetch_places_nearby(latitude, longitude)
+        print(results)
         return jsonify(results=results)
 
     return render_template('places.html')
 
 
 def fetch_places_nearby(lat, lon):
+    """ Fetches nearby places via MediaWiki Action API's Geosearch module
+    """
     params = {
         "action": "query",
         "prop": "coordinates|pageimages|description|info",
@@ -53,6 +57,7 @@ def fetch_places_nearby(lat, lon):
 
     res = SESSION.get(url=API_ENDPOINT, params=params)
     data = res.json()
+    print(data)
     places = data['query'] and data['query']['pages']
 
     # further process 'places' list
@@ -81,4 +86,4 @@ def fetch_places_nearby(lat, lon):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    APP.run(debug=True)
