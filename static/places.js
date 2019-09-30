@@ -20,6 +20,24 @@ $( document ).ready(function() {
 	}
 
 	function fetchPlaces(position) {
-		x.innerHTML = position.coords.latitude + "|" + position.coords.longitude;
-	}
+        var data = {
+            "latitude": position.coords.latitude,
+            "longitude": position.coords.longitude
+        };
+
+        $.ajax({
+            url: "/",
+            type: "POST",
+            data: JSON.stringify(data),
+            contentType: "application/json",
+            dataType: "json",
+
+            success: function (response) {
+                x.innerHTML = "Success!";
+            },
+            error: function () {
+                x.innerHTML = "An error occured while fetching places!";
+            }
+        });
+    }
 });
