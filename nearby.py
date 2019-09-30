@@ -12,17 +12,73 @@
     MIT license
 """
 
-from flask import Flask, render_template
+from flask import Flask, render_template, request, jsonify
+import requests
+from haversine import haversine
 
 app = Flask(__name__)
+SESSION = requests.Session()
+API_ENDPOINT = 'https://en.wikipedia.org/w/api.php'
 
-
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])    # extend the route to handle POST requests
 def index():
     """ Displays the index page accessible at '/'
     """
+    if request.method == "POST":
+
+        # obtain location data in json format from the request object
+        data = request.get_json()
+        latitude = data['latitude']
+        longitude = data['longitude']
+
+        # pass the location data to fetch_places_nearby() for further processing
+        results = fetch_places_nearby(latitude, longitude)
+        return jsonify(results=results)
+
     return render_template('places.html')
 
 
+def fetch_places_nearby(lat, lon):
+    params = {
+        "action": "query",
+        "prop": "coordinates|pageimages|description|info",
+        "inprop": "url",
+        "pithumbsize": 144,
+        "generator": "geosearch",
+        "ggsradius": 10000,
+        "ggslimit": 10,
+        "ggscoord": str(lat) + "|" + str(lon),
+        "format": "json",
+    }
+
+    res = SESSION.get(url=API_ENDPOINT, params=params)
+    data = res.json()
+    places = data['query'] and data['query']['pages']
+
+    # further process 'places' list
+    results = []
+
+    for k in places:
+        title = places[k]['title']
+        description = places[k]['description'] if "description" in places[k] else ''
+        thumbnail = places[k]['thumbnail']['source'] if "thumbnail" in places[k] else ''
+        article_url = places[k]['fullurl']
+
+        cur_loc = (lat, lon)
+        place_loc = (places[k]['coordinates'][0]['lat'], places[k]['coordinates'][0]['lon'])
+
+        distance = round(haversine(cur_loc, place_loc, unit='mi'), 2)
+
+        results.append({
+            'title': title,
+            'description': description,
+            'thumbnail': thumbnail,
+            'articleUrl': article_url,
+            'distance': distance
+        })
+
+    return results
+
+
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
